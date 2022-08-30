@@ -16,15 +16,15 @@ Model::Model(const char *filename) {
         char trash;
         if (!line.compare(0, 2, "v ")) {
             iss >> trash;
-            Vec3f v;
-            for (int i=0;i<3;i++) iss >> v.raw[i];
+            glm::vec3 v;
+            for (int i=0;i<3;i++) iss >> v[i];
             verts_.push_back(v);
         }
         else if(!line.compare(0, 3, "vt ")) {
             iss >> trash >> trash;
-            Vec2f uv;
+            glm::vec2 uv;
             iss >> uv.x >> uv.y;
-            tex_coord.push_back({ uv.x, 1 - uv.y });    //1-y是什么意思？
+            tex_coord.push_back({ uv.x, 1 - uv.y });    //1-y鏄粈涔堟剰鎬濓紵
 
         }
         else if (!line.compare(0, 2, "f ")) {
@@ -58,10 +58,10 @@ int Model::nfaces() {
     return (int)facet_vrt.size()/3;
 }
 
-Vec3f Model::vert(int nface, int nthvert) {
+glm::vec3 Model::vert(int nface, int nthvert) {
     return verts_[facet_vrt[nface * 3 + nthvert]];
 }
 
-Vec2f Model::uv(const int nface, const int nthvert) const {
+glm::vec2 Model::uv(const int nface, const int nthvert) const {
     return tex_coord[facet_tex[nface * 3 + nthvert]];
 }
