@@ -10,29 +10,29 @@ const int width  = 800;
 const int height = 800;
 
 
-// ÇóµãÔÚÈı½ÇĞÎÖØĞÄ×ø±ê
-Vec3f barycentric(Vec3f* pts, Vec3f P) 
+// æ±‚ç‚¹åœ¨ä¸‰è§’å½¢é‡å¿ƒåæ ‡
+glm::vec3 barycentric(glm::vec3* pts, glm::vec3 P)
 {
-    Vec3f x(pts[1].x - pts[0].x, pts[2].x - pts[0].x, pts[0].x - P.x);
-    Vec3f y(pts[1].y - pts[0].y, pts[2].y - pts[0].y, pts[0].y - P.y);
+    glm::vec3 x(pts[1].x - pts[0].x, pts[2].x - pts[0].x, pts[0].x - P.x);
+    glm::vec3 y(pts[1].y - pts[0].y, pts[2].y - pts[0].y, pts[0].y - P.y);
 
-    // u ÏòÁ¿ºÍ x y ÏòÁ¿µÄµã»ıÎª 0£¬ËùÒÔ x y ÏòÁ¿²æ³Ë¿ÉÒÔµÃµ½ u ÏòÁ¿
-    Vec3f u = x ^ y;
+    // u å‘é‡å’Œ x y å‘é‡çš„ç‚¹ç§¯ä¸º 0ï¼Œæ‰€ä»¥ x y å‘é‡å‰ä¹˜å¯ä»¥å¾—åˆ° u å‘é‡
+    glm::vec3 u = glm::cross(x, y);
 
-    // ËùÒÔ u.z ¾ø¶ÔÖµĞ¡ÓÚ 1 ÒâÎ¶×ÅÈı½ÇĞÎÍË»¯ÁË£¬Ö±½ÓÉáÆú
+    // æ‰€ä»¥ u.z ç»å¯¹å€¼å°äº 1 æ„å‘³ç€ä¸‰è§’å½¢é€€åŒ–äº†ï¼Œç›´æ¥èˆå¼ƒ
     if (std::abs(u.z) < 1) {
-        return Vec3f(-1, 1, 1);
+        return glm::vec3(-1, 1, 1);
     }
-    return Vec3f(1.f - (u.x + u.y) / u.z, u.x / u.z, u.y / u.z);
+    return glm::vec3(1.0f - (u.x + u.y) / u.z, u.x / u.z, u.y / u.z);
 }
 
-// µ¥¸öÈı½ÇĞÎ¹âÕ¤»¯
-void drawSingleTriangle(Vec3f* points, float* zbuffer , TGAImage& image, TGAImage& texture , Vec2f* tex_coord ,float intensity)
+// å•ä¸ªä¸‰è§’å½¢å…‰æ …åŒ–
+void drawSingleTriangle(glm::vec3* points, float* zbuffer , TGAImage& image, TGAImage& texture , glm::vec2* tex_coord ,float intensity)
 {
-    // ÏÈÇóboundingbox
-    Vec2f boxmax(0, 0);
-    Vec2f boxmin(image.get_width() - 1, image.get_height() - 1);
-    Vec2f clamp(image.get_width() - 1, image.get_height() - 1); // Í¼Æ¬µÄ±ß½ç
+    // å…ˆæ±‚boundingbox
+    glm::vec2 boxmax(0.0f, 0.0f);
+    glm::vec2 boxmin(image.get_width() - 1.0f, image.get_height() - 1.0f);
+    glm::vec2 clamp(image.get_width() - 1.0f, image.get_height() - 1.0f); // å›¾ç‰‡çš„è¾¹ç•Œ
 
     for (int i = 0; i < 3; i++)
     {
@@ -42,24 +42,24 @@ void drawSingleTriangle(Vec3f* points, float* zbuffer , TGAImage& image, TGAImag
         boxmax.y = std::min( clamp.y,  std::max(boxmax.y, points[i].y) );
     }
 
-    // ¶Ô°üÎ§ºĞÄÚÏñËØ±éÀú
-    Vec3f P;
+    // å¯¹åŒ…å›´ç›’å†…åƒç´ éå†
+    glm::vec3 P;
     for (P.x = boxmin.x; P.x <= boxmax.x; P.x++)
     {
         for (P.y = boxmin.y; P.y <= boxmax.y; P.y++)
         {
-            // ÀûÓÃÖØĞÄ×ø±êÅĞ¶ÏÊÇ·ñÔÚÈı½ÇĞÎÄÚ
-            Vec3f bc = barycentric(points, P);
-            if (bc.x < 0.f || bc.y < 0.f || bc.z < 0.f)
+            // åˆ©ç”¨é‡å¿ƒåæ ‡åˆ¤æ–­æ˜¯å¦åœ¨ä¸‰è§’å½¢å†…
+            glm::vec3 bc = barycentric(points, P);
+            if (bc.x < 0.0f || bc.y < 0.0f || bc.z < 0.0f)
                 continue;
 
-            //ÀûÓÃÖØĞÄ×ø±ê¼ÆËãPµÄzÖµºÍÎÆÀí×ø±ê
+            //åˆ©ç”¨é‡å¿ƒåæ ‡è®¡ç®—Pçš„zå€¼å’Œçº¹ç†åæ ‡
             P.z = points[0].z * bc.x + points[1].z * bc.y + points[2].z * bc.z;
             if (zbuffer[int(P.y * width + P.x)] < P.z)
             {
                 zbuffer[int(P.y * width + P.x)] = P.z;
 
-                Vec2f coord = tex_coord[0] * bc.x + tex_coord[1] * bc.y + tex_coord[2] * bc.z;
+                glm::vec2 coord = tex_coord[0] * bc.x + tex_coord[1] * bc.y + tex_coord[2] * bc.z;
                 TGAColor color = texture.get(texture.get_width() * coord.x, texture.get_height() * coord.y);
                 image.set(P.x, P.y, color*intensity);
             }
@@ -67,10 +67,10 @@ void drawSingleTriangle(Vec3f* points, float* zbuffer , TGAImage& image, TGAImag
     }
 }
 
-void line(int x1, int y1, int x2, int y2, TGAImage& image, TGAColor color)  //ÓÅ»¯ºóµÄBresenhamÖ±ÏßËã·¨£¬Ïû³ıÁË¸¡µãÔËËã
+void line(int x1, int y1, int x2, int y2, TGAImage& image, TGAColor color)  //ä¼˜åŒ–åçš„Bresenhamç›´çº¿ç®—æ³•ï¼Œæ¶ˆé™¤äº†æµ®ç‚¹è¿ç®—
 {
-    bool steep = false; //ÅĞ¶ÏĞ±ÂÊ¾ø¶ÔÖµÊÇ·ñ´óÓÚ1
-    //Ğ±ÂÊ¾ø¶ÔÖµ´óÓÚ1
+    bool steep = false; //åˆ¤æ–­æ–œç‡ç»å¯¹å€¼æ˜¯å¦å¤§äº1
+    //æ–œç‡ç»å¯¹å€¼å¤§äº1
     if (std::abs(x2 - x1) < std::abs(y2 - y1))
     {
         steep = true;
@@ -78,7 +78,7 @@ void line(int x1, int y1, int x2, int y2, TGAImage& image, TGAColor color)  //ÓÅ
         std::swap(x2, y2);
     }
 
-    //½»»»Á½¸öµãË³Ğò
+    //äº¤æ¢ä¸¤ä¸ªç‚¹é¡ºåº
     if (x1 > x2)
     {
         std::swap(x1, x2);
@@ -90,7 +90,7 @@ void line(int x1, int y1, int x2, int y2, TGAImage& image, TGAColor color)  //ÓÅ
     int dy = y2 - y1;
     int yi = 1;
 
-    //Ğ±ÂÊÔÚ-1µ½0Ö®¼ä
+    //æ–œç‡åœ¨-1åˆ°0ä¹‹é—´
     if (dy < 0)
     {
         yi = -1;
@@ -107,7 +107,7 @@ void line(int x1, int y1, int x2, int y2, TGAImage& image, TGAColor color)  //ÓÅ
             image.set(x, y, color);
 
         eps += dy;
-        // ÕâÀïÓÃÎ»ÔËËã <<1 ´úÌæ *2
+        // è¿™é‡Œç”¨ä½è¿ç®— <<1 ä»£æ›¿ *2
         if ((eps << 1) >= dx)
         {
             y += yi;
@@ -116,8 +116,8 @@ void line(int x1, int y1, int x2, int y2, TGAImage& image, TGAColor color)  //ÓÅ
     }
 }
 
-Vec3f world2screen(Vec3f v) {
-    return Vec3f(int((v.x + 1.0f) * width / 2.0f + 0.5f), int((v.y + 1.0f) * height / 2.0f + 0.5f), v.z);
+glm::vec3 world2screen(glm::vec3 v) {   
+    return glm::vec3(int((v.x + 1.0f) * width / 2.0f + 0.5f), int((v.y + 1.0f) * height / 2.0f + 0.5f), v.z);   //ä¸€å®šè¦å…ˆè½¬æ¢æˆintï¼Œå¦åˆ™ä¼šå‡ºç°å¤§é¢ç§¯é»‘è‰²çº¿æ¡å’ŒåŒºåŸŸ
 }
 
 int main(int argc, char** argv) 
@@ -125,39 +125,39 @@ int main(int argc, char** argv)
     TGAImage image(width, height, TGAImage::RGB);
     TGAImage texture(1024, 1024, TGAImage::RGB);
     texture.read_tga_file("obj/african_head_diffuse.tga");
-    // ÊµÀı»¯Ä£ĞÍ
+    // å®ä¾‹åŒ–æ¨¡å‹
     model = new Model("obj/african_head.obj");
 
-    // Éî¶È»º³åÇø
+    // æ·±åº¦ç¼“å†²åŒº
     float* zbuffer = new float[width * height];
     for (int i = 0; i < width * height; i++) {
         zbuffer[i] = -std::numeric_limits<float>::max();
     }
 
-    Vec3f light_dir(0, 0, -1); // ¼ÙÉè¹âÊÇ´¹Ö±ÆÁÄ»µÄ
+    glm::vec3 light_dir(0.0f, 0.0f, -1.0f); // å‡è®¾å…‰æ˜¯å‚ç›´å±å¹•çš„
 
     for (int i = 0; i < model->nfaces(); i++) {
-        Vec3f screen_coords[3];
-        Vec2f tex_coord[3];
-        Vec3f world_coords[3];
+        glm::vec3 screen_coords[3];
+        glm::vec2 tex_coord[3];
+        glm::vec3 world_coords[3];
 
-        // ¼ÆËãÊÀ½ç×ø±êºÍÆÁÄ»×ø±ê
+        // è®¡ç®—ä¸–ç•Œåæ ‡å’Œå±å¹•åæ ‡
         for (int j = 0; j < 3; j++) {
-            Vec3f v = model->vert(i,j);
+            glm::vec3 v = model->vert(i,j);
             
-            // Í¶Ó°ÎªÕı½»Í¶Ó°£¬¶øÇÒÖ»×öÁË¸ö¼òµ¥µÄÊÓ¿Ú±ä»»
+            // æŠ•å½±ä¸ºæ­£äº¤æŠ•å½±ï¼Œè€Œä¸”åªåšäº†ä¸ªç®€å•çš„è§†å£å˜æ¢
             screen_coords[j] = world2screen(v);
             tex_coord[j] = model->uv(i, j);
             world_coords[j] = v;
         }
 
-        // ¼ÆËãÊÀ½ç×ø±êÖĞÄ³¸öÈı½ÇĞÎµÄ·¨Ïß£¨·¨Ïß = Èı½ÇĞÎÈÎÒâÁ½Ìõ±ß×ö²æ³Ë£©
-        Vec3f n = (world_coords[2] - world_coords[0]) ^ (world_coords[1] - world_coords[0]);
-        n.normalize(); // ¶Ô n ×ö¹éÒ»»¯´¦Àí
+        // è®¡ç®—ä¸–ç•Œåæ ‡ä¸­æŸä¸ªä¸‰è§’å½¢çš„æ³•çº¿ï¼ˆæ³•çº¿ = ä¸‰è§’å½¢ä»»æ„ä¸¤æ¡è¾¹åšå‰ä¹˜ï¼‰
+        glm::vec3 n = glm::cross(world_coords[2] - world_coords[0], world_coords[1] - world_coords[0] );
+        n = glm::normalize(n); // å¯¹ n åšå½’ä¸€åŒ–å¤„ç†
 
-        // Èı½ÇĞÎ·¨ÏßºÍ¹âÕÕ·½Ïò×öµã³Ë£¬µã³ËÖµ´óÓÚ 0£¬ËµÃ÷·¨Ïß·½ÏòºÍ¹âÕÕ·½ÏòÔÚÍ¬Ò»²à
-        // ÖµÔ½´ó£¬ËµÃ÷Ô½¶àµÄ¹âÕÕÉäµ½Èı½ÇĞÎÉÏ£¬ÑÕÉ«Ô½°×
-        float intensity = n * light_dir;
+        // ä¸‰è§’å½¢æ³•çº¿å’Œå…‰ç…§æ–¹å‘åšç‚¹ä¹˜ï¼Œç‚¹ä¹˜å€¼å¤§äº 0ï¼Œè¯´æ˜æ³•çº¿æ–¹å‘å’Œå…‰ç…§æ–¹å‘åœ¨åŒä¸€ä¾§
+        // å€¼è¶Šå¤§ï¼Œè¯´æ˜è¶Šå¤šçš„å…‰ç…§å°„åˆ°ä¸‰è§’å½¢ä¸Šï¼Œé¢œè‰²è¶Šç™½
+        float intensity = glm::dot(n, light_dir);
         if (intensity > 0) {
             drawSingleTriangle(screen_coords, zbuffer, image, texture, tex_coord, intensity);
         }
@@ -168,83 +168,3 @@ int main(int argc, char** argv)
     delete model;
     return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-/*Ïß¿òÄ£Ê½
-// Ñ­»·Ä£ĞÍÀïµÄËùÓĞÈı½ÇĞÎ
-    for (int i = 0; i < model->nfaces(); i++) {
-        std::vector<int> face = model->face(i);
-
-        // Ñ­»·Èı½ÇĞÎÈı¸ö¶¥µã£¬Ã¿Á½¸ö¶¥µãÁ¬Ò»ÌõÏß
-        for (int j = 0; j < 3; j++) {
-            Vec3f v0 = model->vert(face[j]);
-            Vec3f v1 = model->vert(face[(j + 1) % 3]);
-
-            // ÒòÎªÄ£ĞÍ¿Õ¼äÈ¡Öµ·¶Î§ÊÇ [-1, 1]^3£¬ÎÒÃÇÒª°ÑÄ£ĞÍ×ø±êÆ½ÒÆµ½ÆÁÄ»×ø±êÖĞ
-            // ÏÂÃæ (point + 1) * width(height) / 2 µÄ²Ù×÷Ñ§ÃûÎªÊÓ¿Ú±ä»»£¨Viewport Transformation£©
-            int x0 = (v0.x + 1.) * width / 2.;
-            int y0 = (v0.y + 1.) * height / 2.;
-            int x1 = (v1.x + 1.) * width / 2.;
-            int y1 = (v1.y + 1.) * height / 2.;
-
-            // »­Ïß
-            line(x0, y0, x1, y1, image, white);
-        }
-    }
-*/
-
-/*Ëæ»ú×ÅÉ«
-for (int i = 0; i < model->nfaces(); i++)
-    {
-        std::vector<int> face = model->face(i);
-        Vec3f points[3];
-        // Ñ­»·Èı½ÇĞÎÈı¸ö¶¥µã
-        for (int j = 0; j < 3; j++)
-        {
-            Vec3f v = model->vert(face[j]);
-
-            // ÒòÎªÄ£ĞÍ¿Õ¼äÈ¡Öµ·¶Î§ÊÇ [-1, 1]^3£¬ÎÒÃÇÒª°ÑÄ£ĞÍ×ø±êÆ½ÒÆµ½ÆÁÄ»×ø±êÖĞ
-            // ÏÂÃæ (point + 1) * width(height) / 2 µÄ²Ù×÷Ñ§ÃûÎªÊÓ¿Ú±ä»»£¨Viewport Transformation£©
-            points[j].x = (v.x + 1.) * width / 2.;
-            points[j].y = (v.y + 1.) * height / 2.;
-        }
-        drawSingleTriangle(points, image, TGAColor(rand() % 255, rand() % 255, rand() % 255, 255));
-    }*/
-
-
-/*¼òµ¥¹âÕÕ
-Vec3f light_dir(0, 0, -1); // ¼ÙÉè¹âÊÇ´¹Ö±ÆÁÄ»µÄ
-
-    for (int i = 0; i < model->nfaces(); i++) {
-        std::vector<int> face = model->face(i);
-        Vec3f screen_coords[3];
-        Vec3f world_coords[3];
-
-        // ¼ÆËãÊÀ½ç×ø±êºÍÆÁÄ»×ø±ê
-        for (int j = 0; j < 3; j++) {
-            Vec3f v = model->vert(face[j]);
-            // Í¶Ó°ÎªÕı½»Í¶Ó°£¬¶øÇÒÖ»×öÁË¸ö¼òµ¥µÄÊÓ¿Ú±ä»»
-            screen_coords[j] = Vec3f((v.x + 1.0f) * width / 2.0f, (v.y + 1.0f) * height / 2.0f, 0.0f);
-            world_coords[j] = v;
-        }
-
-        // ¼ÆËãÊÀ½ç×ø±êÖĞÄ³¸öÈı½ÇĞÎµÄ·¨Ïß£¨·¨Ïß = Èı½ÇĞÎÈÎÒâÁ½Ìõ±ß×ö²æ³Ë£©
-        Vec3f n = (world_coords[2] - world_coords[0]) ^ (world_coords[1] - world_coords[0]);
-        n.normalize(); // ¶Ô n ×ö¹éÒ»»¯´¦Àí
-
-        // Èı½ÇĞÎ·¨ÏßºÍ¹âÕÕ·½Ïò×öµã³Ë£¬µã³ËÖµ´óÓÚ 0£¬ËµÃ÷·¨Ïß·½ÏòºÍ¹âÕÕ·½ÏòÔÚÍ¬Ò»²à
-        // ÖµÔ½´ó£¬ËµÃ÷Ô½¶àµÄ¹âÕÕÉäµ½Èı½ÇĞÎÉÏ£¬ÑÕÉ«Ô½°×
-        float intensity = n * light_dir;
-        if (intensity > 0) {
-            drawSingleTriangle(screen_coords, image, TGAColor(intensity * 255, intensity * 255, intensity * 255, 255));
-        }
-    }*/
