@@ -1,6 +1,8 @@
 #include "tgaimage.h"
 #include "model.h"
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
@@ -9,6 +11,10 @@ Model *model = NULL;
 const int width  = 800;
 const int height = 800;
 
+glm::vec4 norm(const glm::vec4 v)
+{
+    return glm::ivec4(v.x / v.w, v.y / v.w, v.z / v.w, 1.0f);
+}
 
 // 求点在三角形重心坐标
 glm::vec3 barycentric(glm::vec3* pts, glm::vec3 P)
@@ -26,20 +32,41 @@ glm::vec3 barycentric(glm::vec3* pts, glm::vec3 P)
     return glm::vec3(1.0f - (u.x + u.y) / u.z, u.x / u.z, u.y / u.z);
 }
 
+// 求View矩阵
+glm::mat4 LookAt(glm::vec3 eye, glm::vec3 center, glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f))
+{
+    glm::vec3 e = eye - center;
+    glm::vec3 g = -glm::normalize(e);
+    glm::vec3 u = glm::cross(g, up);
+    glm::vec3 v = glm::cross(u, g);
+    glm::vec3 w = -g;
+    glm::mat4 trans = glm::mat4(1.0f);
+    trans = glm::translate(trans, -e);
+    glm::mat4 rot= glm::mat4(1.0f);
+    for (int i = 0; i < 3; i++)     //glm以列存储矩阵。。。
+    {
+        rot[i][0] = u[i];
+        rot[i][1] = v[i];
+        rot[i][2] = w[i];
+    }
+    return rot*trans;
+}
+
+
 // 单个三角形光栅化
 void drawSingleTriangle(glm::vec3* points, float* zbuffer , TGAImage& image, TGAImage& texture , glm::vec2* tex_coord ,float intensity)
 {
     // 先求boundingbox
-    glm::vec2 boxmax(0.0f, 0.0f);
-    glm::vec2 boxmin(image.get_width() - 1.0f, image.get_height() - 1.0f);
-    glm::vec2 clamp(image.get_width() - 1.0f, image.get_height() - 1.0f); // 图片的边界
+    glm::ivec2 boxmax(0, 0);
+    glm::ivec2 boxmin(image.get_width() - 1, image.get_height() - 1);
+    glm::ivec2 clamp(image.get_width() - 1, image.get_height() - 1); // 图片的边界
 
     for (int i = 0; i < 3; i++)
     {
-        boxmin.x = std::max(0.0f, std::min(boxmin.x, points[i].x) );
-        boxmin.y = std::max(0.0f, std::min(boxmin.y, points[i].y) );
-        boxmax.x = std::min( clamp.x , std::max(boxmax.x, points[i].x) );
-        boxmax.y = std::min( clamp.y,  std::max(boxmax.y, points[i].y) );
+        boxmin.x = std::max(0, std::min(boxmin.x, (int)points[i].x) );
+        boxmin.y = std::max(0, std::min(boxmin.y, (int)points[i].y) );
+        boxmax.x = std::min( clamp.x , std::max(boxmax.x, (int)points[i].x) );
+        boxmax.y = std::min( clamp.y,  std::max(boxmax.y, (int)points[i].y) );
     }
 
     // 对包围盒内像素遍历
@@ -61,7 +88,7 @@ void drawSingleTriangle(glm::vec3* points, float* zbuffer , TGAImage& image, TGA
 
                 glm::vec2 coord = tex_coord[0] * bc.x + tex_coord[1] * bc.y + tex_coord[2] * bc.z;
                 TGAColor color = texture.get(texture.get_width() * coord.x, texture.get_height() * coord.y);
-                image.set(P.x, P.y, color*intensity);
+                image.set(P.x, P.y, color);
             }
         }
     }
@@ -116,10 +143,6 @@ void line(int x1, int y1, int x2, int y2, TGAImage& image, TGAColor color)  //�
     }
 }
 
-glm::vec3 world2screen(glm::vec3 v) {   
-    return glm::vec3(int((v.x + 1.0f) * width / 2.0f + 0.5f), int((v.y + 1.0f) * height / 2.0f + 0.5f), v.z);   //一定要先转换成int，否则会出现大面积黑色线条和区域
-}
-
 int main(int argc, char** argv) 
 {
     TGAImage image(width, height, TGAImage::RGB);
@@ -131,8 +154,17 @@ int main(int argc, char** argv)
     // 深度缓冲区
     float* zbuffer = new float[width * height];
     for (int i = 0; i < width * height; i++) {
-        zbuffer[i] = -std::numeric_limits<float>::max();
+        zbuffer[i] = std::numeric_limits<int>::min();
     }
+
+    // 创建MVP矩阵
+    glm::vec3 eye = glm::vec3(0.0f, 0.0f, 1.5f);
+    glm::mat4 ModelView = glm::mat4(1.0f) * LookAt(eye, glm::vec3(0.0f, 0.0f, 0.0f));
+    glm::mat4 Projection = glm::perspective(glm::pi<float>() * 0.25f, 1.0f/1.0f, 0.1f, 100.f);
+    glm::mat4 MVP = Projection * ModelView;
+    glm::mat4 ViewPort = glm::mat4(1.0f);
+    ViewPort[0][0] = ViewPort[3][0] = width / 2;
+    ViewPort[1][1] = ViewPort[3][1] = height / 2;
 
     glm::vec3 light_dir(0.0f, 0.0f, -1.0f); // 假设光是垂直屏幕的
 
@@ -143,10 +175,10 @@ int main(int argc, char** argv)
 
         // 计算世界坐标和屏幕坐标
         for (int j = 0; j < 3; j++) {
-            glm::vec3 v = model->vert(i,j);
+            glm::vec3 v = model->vert(i, j);
             
             // 投影为正交投影，而且只做了个简单的视口变换
-            screen_coords[j] = world2screen(v);
+            screen_coords[j] = norm(ViewPort * MVP * glm::vec4(v, 1.0f));
             tex_coord[j] = model->uv(i, j);
             world_coords[j] = v;
         }
@@ -157,7 +189,7 @@ int main(int argc, char** argv)
 
         // 三角形法线和光照方向做点乘，点乘值大于 0，说明法线方向和光照方向在同一侧
         // 值越大，说明越多的光照射到三角形上，颜色越白
-        float intensity = glm::dot(n, light_dir);
+        float intensity = glm::dot(n, -eye);
         if (intensity > 0) {
             drawSingleTriangle(screen_coords, zbuffer, image, texture, tex_coord, intensity);
         }
@@ -165,6 +197,7 @@ int main(int argc, char** argv)
 
     image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
     image.write_tga_file("output/output.tga");
+    
     delete model;
     return 0;
 }
