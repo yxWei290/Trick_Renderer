@@ -8,7 +8,8 @@
 
 踩到的坑：
 1、按照games101以及glm::perspective()两种方式创建投影矩阵，结果只能看到背面，意识到z值出现错误，但卡了很久也没发现问题所在。
-之后在（http://www.songho.ca/opengl/gl_projectionmatrix.html）仔细阅读后才明白NDC空间是左手坐标系，z值越大物体距离越远
+之后在（http://www.songho.ca/opengl/gl_projectionmatrix.html）
+仔细阅读后才明白NDC空间是左手坐标系，z值越大物体距离越远
 将zbuffer初值设为无穷大后并改变深度测试条件才终于正常显示
 ![image](https://user-images.githubusercontent.com/65759488/188634667-17b7e3bb-86a3-4a29-b155-5ec3efa442d1.png)
 
