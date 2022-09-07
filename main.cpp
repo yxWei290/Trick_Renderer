@@ -15,15 +15,15 @@ glm::vec3       eye(1, 1, 3);
 glm::vec3    center(0, 0, 0);
 glm::vec3        up(0, 1, 0);
 
-// ÏòÁ¿¹éÒ»»¯
+// å‘é‡å½’ä¸€åŒ–
 glm::vec4 norm(const glm::vec4 v)
 {
     return glm::vec4(v.x / v.w, v.y / v.w, v.z / v.w, 1.0f);
 }
 
-// Çó¶¥µã·¨Ïß¼°Ç¿¶È£¬²åÖµ¸øÃæÄÚµÄÆ¬¶Î
+// æ±‚é¡¶ç‚¹æ³•çº¿åŠå¼ºåº¦ï¼Œæ’å€¼ç»™é¢å†…çš„ç‰‡æ®µ
 struct GouraudShader : public IShader {
-    glm::vec3 varying_intensity; // ¶¥µã×ÅÉ«Æ÷Ğ´£¬Æ¬¶Î×ÅÉ«Æ÷¶Á¡£Èı½ÇĞÎÈı¸ö¶¥µãµÄ¹âÕÕÇ¿¶ÈÖµ
+    glm::vec3 varying_intensity; // é¡¶ç‚¹ç€è‰²å™¨å†™ï¼Œç‰‡æ®µç€è‰²å™¨è¯»ã€‚ä¸‰è§’å½¢ä¸‰ä¸ªé¡¶ç‚¹çš„å…‰ç…§å¼ºåº¦å€¼
 
     virtual glm::vec3 vertex(int iface, int nthvert) 
     {
@@ -34,7 +34,7 @@ struct GouraudShader : public IShader {
         return gl_vertex;
     }
 
-    // ·µ»Øtrue±íÊ¾¶ªÆúÕâ¸öÆ¬¶Î
+    // è¿”å›trueè¡¨ç¤ºä¸¢å¼ƒè¿™ä¸ªç‰‡æ®µ
     virtual bool fragment(glm::vec3 bar, TGAColor& color)
     {
         float intensity = glm::dot(varying_intensity, bar);
@@ -43,8 +43,30 @@ struct GouraudShader : public IShader {
     }
 };
 
+// æ±‚é¡¶ç‚¹æ³•çº¿ï¼Œæ’å€¼ç»™é¢å†…çš„ç‰‡æ®µ,å¼ºåº¦åˆ†åˆ«è®¡ç®—
+struct PhongShader : public IShader {
+    glm::vec3 varying_normal[3]; // é¡¶ç‚¹ç€è‰²å™¨å†™ï¼Œç‰‡æ®µç€è‰²å™¨è¯»ã€‚ä¸‰è§’å½¢ä¸‰ä¸ªé¡¶ç‚¹çš„æ³•çº¿æ–¹å‘
+
+    virtual glm::vec3 vertex(int iface, int nthvert)
+    {
+        glm::vec3 gl_vertex = model->vert(iface, nthvert);
+        gl_vertex = Viewport * norm(Projection * ModelView * glm::vec4(gl_vertex, 1.0f));
+        varying_normal[nthvert] = glm::normalize(model->normal(iface, nthvert));
+        return gl_vertex;
+    }
+
+    // è¿”å›trueè¡¨ç¤ºä¸¢å¼ƒè¿™ä¸ªç‰‡æ®µ
+    virtual bool fragment(glm::vec3 bar, TGAColor& color)
+    {
+        glm::vec3 frag_normal = varying_normal[0] * bar.x + varying_normal[1] * bar.y + varying_normal[2] * bar.z;
+        float intensity = glm::dot(frag_normal, light_dir);
+        color = TGAColor(255, 255, 255) * intensity;
+        return false;
+    }
+};
+
 int main(int argc, char** argv) 
-{   // ÊµÀı»¯Ä£ĞÍ
+{   // å®ä¾‹åŒ–æ¨¡å‹
     model = new Model("obj/african_head.obj");
     lookat(eye, center, up);
     viewport(width , height);
@@ -58,7 +80,9 @@ int main(int argc, char** argv)
         zbuffer[i] = std::numeric_limits<float>::max();
     }
 
-    GouraudShader shader;
+    GouraudShader shader;   //åœ¨è¿™é‡Œæ›´æ¢ç€è‰²å™¨
+    //PhongShader shader;
+    
     for (int i = 0; i < model->nfaces(); i++) 
     {
         glm::vec3 screen_coords[3];
