@@ -5,6 +5,10 @@
 使用MVP变换摆放摄像机后进行Gouraud着色：
 ![image](https://user-images.githubusercontent.com/65759488/188633797-dcda9c3d-f4b4-4908-b927-2f5db9f0b7af.png)
 
+Phong着色：
+![image](https://user-images.githubusercontent.com/65759488/188878982-3dddc853-e962-46bb-bc31-f3b693cf3c87.png)
+
+
 
 踩到的坑：
 1、按照games101以及glm::perspective()两种方式创建投影矩阵，结果只能看到背面，意识到z值出现错误，但卡了很久也没发现问题所在。
