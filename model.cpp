@@ -30,7 +30,7 @@ Model::Model(const char *filename) {
             iss >> trash >> trash;
             glm::vec2 uv;
             iss >> uv.x >> uv.y;
-            tex_coord.push_back({ uv.x, 1 - uv.y });    //1-y是什么意思？
+            tex_coord.push_back({ uv.x, 1 - uv.y });    //1-y鏄粈涔堟剰鎬濓紵
 
         }
         else if (!line.compare(0, 2, "f ")) {
@@ -51,6 +51,10 @@ Model::Model(const char *filename) {
         }
     }
     std::cerr << "# v# " << verts_.size() << " f# "  << facet_vrt.size()/3 << std::endl;
+
+    load_texture(filename, "_diffuse.tga", diffusemap);
+    //load_texture(filename, "_nm_tangent.tga", normalmap);
+    //load_texture(filename, "_spec.tga", specularmap);
 }
 
 Model::~Model() {
@@ -74,4 +78,11 @@ glm::vec2 Model::uv(const int nface, const int nthvert) const {
 
 glm::vec3 Model::normal(const int iface, const int nthvert) const {
     return norms[facet_nrm[iface * 3 + nthvert]];
+}
+
+void Model::load_texture(std::string filename, const std::string suffix, TGAImage& img) {
+    size_t dot = filename.find_last_of(".");
+    if (dot == std::string::npos) return;
+    std::string texfile = filename.substr(0, dot) + suffix;
+    std::cerr << "texture file " << texfile << " loading " << (img.read_tga_file(texfile.c_str()) ? "ok" : "failed") << std::endl;
 }
