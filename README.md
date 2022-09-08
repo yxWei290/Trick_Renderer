@@ -2,10 +2,17 @@
 一个软件渲染器
 一个尝试
 
+纹理贴图：
+
+![image](https://user-images.githubusercontent.com/65759488/189099485-6c8a67e3-4040-4d23-bb17-9f9d1f16ea46.png)
+
+
 使用MVP变换摆放摄像机后进行Gouraud着色：
+
 ![image](https://user-images.githubusercontent.com/65759488/188633797-dcda9c3d-f4b4-4908-b927-2f5db9f0b7af.png)
 
 Phong着色：
+
 ![image](https://user-images.githubusercontent.com/65759488/188878982-3dddc853-e962-46bb-bc31-f3b693cf3c87.png)
 
 
