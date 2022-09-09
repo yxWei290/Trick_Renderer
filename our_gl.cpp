@@ -14,7 +14,7 @@ void viewport(int w, int h)
     Viewport = glm::mat4(1.0f);
     Viewport[0][0] = Viewport[3][0] = w / 2;
     Viewport[1][1] = Viewport[3][1] = h / 2;
-    //Viewport[2][2] = Viewport[3][2] = 255.0f / 2.0f;    //z位于0-255内，值越大越近
+    Viewport[2][2] = Viewport[3][2] = 255.0f / 2.0f;    //z位于0-255内，值越大越近
 }
 
 void projection(float fov, float ratio, float n, float f)
@@ -105,7 +105,6 @@ void triangle(glm::vec3* points, IShader& shader, TGAImage& image, float* zbuffe
 
             // 利用重心坐标计算P的z值
             P.z = points[0].z * bc.x + points[1].z * bc.y + points[2].z * bc.z;
-            //int frag_depth = std::max(0, std::min(255, int(P.z + 0.5f)));
 
             if (zbuffer[int(P.y * image.get_width() + P.x)] < P.z) continue;
 

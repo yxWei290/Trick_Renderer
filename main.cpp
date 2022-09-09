@@ -24,11 +24,12 @@ glm::vec4 norm(const glm::vec4 v)
 // 求顶点法线及强度，插值给面内的片段
 struct GouraudShader : public IShader {
     glm::vec3 varying_intensity; // 顶点着色器写，片段着色器读。三角形三个顶点的光照强度值
+    glm::vec2 varying_uv[3];     // 三角形三个顶点的uv坐标
 
     virtual glm::vec3 vertex(int iface, int nthvert) 
     {
+        varying_uv[nthvert] = model->uv(iface, nthvert);
         glm::vec3 gl_vertex = model->vert(iface, nthvert);
-        //glm::vec4 test = /**/Viewport * Projection * ModelView * glm::vec4(gl_vertex, 1.0f);
         gl_vertex = Viewport *norm( Projection * ModelView * glm::vec4(gl_vertex, 1.0f));
         varying_intensity[nthvert] = std::max(0.0f, glm::dot(model->normal(iface, nthvert), light_dir));
         return gl_vertex;
@@ -38,7 +39,61 @@ struct GouraudShader : public IShader {
     virtual bool fragment(glm::vec3 bar, TGAColor& color)
     {
         float intensity = glm::dot(varying_intensity, bar);
-        color = TGAColor(255, 255, 255) * intensity; 
+        glm::vec2 uv = varying_uv[0] * bar.x + varying_uv[1] * bar.y + varying_uv[2] * bar.z;
+        color = model->diffuse().get(uv.x*model->diffuse().get_width(), uv.y*model->diffuse().get_height())* intensity;
+
+        return false;
+    }
+};
+
+// 求顶点法线，插值给面内的片段,强度分别计算
+struct PhongShader : public IShader {
+    glm::vec3 varying_normal[3]; // 顶点着色器写，片段着色器读。三角形三个顶点的法线方向
+
+    virtual glm::vec3 vertex(int iface, int nthvert)
+    {
+        glm::vec3 gl_vertex = model->vert(iface, nthvert);
+        gl_vertex = Viewport * norm(Projection * ModelView * glm::vec4(gl_vertex, 1.0f));
+        varying_normal[nthvert] = glm::normalize(model->normal(iface, nthvert));
+        return gl_vertex;
+    }
+
+    // 返回true表示丢弃这个片段
+    virtual bool fragment(glm::vec3 bar, TGAColor& color)
+    {
+        glm::vec3 frag_normal = varying_normal[0] * bar.x + varying_normal[1] * bar.y + varying_normal[2] * bar.z;
+        float intensity = glm::dot(frag_normal, light_dir);
+        color = TGAColor(255, 255, 255) * intensity;
+        return false;
+    }
+};
+
+//  法线贴图+Phong光照模型（环境光+漫反射+高光）。从法线贴图纹理中检索信息，而不是插值法向量。
+struct Shader : public IShader {
+    glm::vec2 varying_uv[3];
+    glm::mat4 uniform_M;   //  Projection*ModelView
+    glm::mat4 uniform_MIT; // (Projection*ModelView)的逆转置
+    glm::vec3 gl_vertex[3];// 存储世界坐标
+
+    virtual glm::vec3 vertex(int iface, int nthvert) 
+    {
+        varying_uv[nthvert] = model->uv(iface, nthvert);
+        gl_vertex[nthvert] = model->vert(iface, nthvert);
+        return norm(Viewport * Projection * ModelView * glm::vec4(gl_vertex[nthvert], 1.0f)); // transform it to screen coordinates
+    }
+
+    virtual bool fragment(glm::vec3 bar, TGAColor& color) {
+        glm::vec2 uv = varying_uv[0] * bar.x + varying_uv[1] * bar.y + varying_uv[2] * bar.z;
+        glm::vec3 n = glm::normalize(model->normal(uv));
+        glm::vec3 l = light_dir;
+        glm::vec3 r = glm::normalize(n * glm::dot(n, l) * 2.0f - l);   // 反射向量
+
+        glm::vec3 frag_coord = gl_vertex[0] * bar.x + gl_vertex[1] * bar.y + gl_vertex[2] * bar.z;  //计算当前像素的世界坐标
+        float spec = pow(std::max(glm::dot(glm::normalize(eye - frag_coord), r), 0.0f), model->specular(uv));
+        float diff = std::max(0.0f, glm::dot(n, l));
+        TGAColor c = model->diffuse(uv);
+        color = c;
+        for (int i = 0; i < 3; i++) color[i] = std::min<float>(5 + c[i] * (diff + spec), 255);   //5代表环境光，系数自由决定
         return false;
     }
 };
@@ -48,17 +103,19 @@ int main(int argc, char** argv)
     model = new Model("obj/african_head.obj");
     lookat(eye, center, up);
     viewport(width , height);
-    projection(glm::radians(45.0f), 1.0f / 1.0f, 0.1f, 100.0f);
+    projection(glm::radians(45.0f), 1.0f / 1.0f, 0.1f, 5.0f);
     light_dir = glm::normalize(light_dir);
 
     TGAImage image(width, height, TGAImage::RGB);
-    //TGAImage zbuffer(width, height, TGAImage::GRAYSCALE);
     float* zbuffer = new float[width * height];
     for (int i = 0; i < width * height; i++) {
         zbuffer[i] = std::numeric_limits<float>::max();
     }
 
-    GouraudShader shader;
+    Shader shader;
+    shader.uniform_M = Projection * ModelView;
+    shader.uniform_MIT = glm::inverse(glm::transpose(Projection * ModelView));
+
     for (int i = 0; i < model->nfaces(); i++) 
     {
         glm::vec3 screen_coords[3];
@@ -69,7 +126,7 @@ int main(int argc, char** argv)
 
     image.flip_vertically(); // to place the origin in the bottom left corner of the image
     image.write_tga_file("output/output.tga");
-
+    
     delete model;
     return 0;
 }
