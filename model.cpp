@@ -53,8 +53,8 @@ Model::Model(const char *filename) {
     std::cerr << "# v# " << verts_.size() << " f# "  << facet_vrt.size()/3 << std::endl;
 
     load_texture(filename, "_diffuse.tga", diffusemap);
-    load_texture(filename, "_nm.tga", normalmap);
-    //load_texture(filename, "_nm_tangent.tga", normalmap);
+    load_texture(filename, "_nm.tga", normalmap);     // 世界空间法线贴图
+    //load_texture(filename, "_nm_tangent.tga", normalmap);// 切线空间法线贴图
     load_texture(filename, "_spec.tga", specularmap);
 }
 
@@ -82,7 +82,8 @@ glm::vec3 Model::normal(const int iface, const int nthvert) const {
 }
 
 glm::vec3 Model::normal(const glm::vec2& uv)  {
-    TGAColor c = normalmap.get(uv.x * normalmap.get_width(), uv.y * normalmap.get_height());
+    glm::ivec2 uvf(uv.x * normalmap.get_width(), uv.y * normalmap.get_height());
+    TGAColor c = normalmap.get(uvf.x, uvf.y);
     return glm::vec3((float)c[2], (float)c[1], (float)c[0]) * 2.0f / 255.0f - glm::vec3(1, 1, 1);
 }
 

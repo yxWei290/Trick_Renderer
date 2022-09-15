@@ -14,7 +14,7 @@ void viewport(int w, int h)
     Viewport = glm::mat4(1.0f);
     Viewport[0][0] = Viewport[3][0] = w / 2;
     Viewport[1][1] = Viewport[3][1] = h / 2;
-    Viewport[2][2] = Viewport[3][2] = 255.0f / 2.0f;    //z位于0-255内，值越大越近
+    Viewport[2][2] = Viewport[3][2] = 255.0f / 2.0f;    //z位于0-255内，值越大越远
 }
 
 void projection(float fov, float ratio, float n, float f)
