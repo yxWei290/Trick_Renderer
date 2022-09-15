@@ -1,4 +1,4 @@
-# Trash_Renderer
+# Trick_Renderer
 一个软件渲染器
 
 目前实现了模型加载、创建摄像机、Gouraud Shading、Phong Shading、纹理贴图、法线贴图、高光贴图以及硬阴影等
